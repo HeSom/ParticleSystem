@@ -4,11 +4,11 @@
 #include <vector>
 #include <glm\glm.hpp>
 
-#include "particleRenderer.h"
+#include "renderer.h"
 
 struct Config
 {
-	int numberParticles = 100*100*100;
+	int numberParticles = 2000;
 	glm::vec4 particleColor = glm::vec4(0.0f, 0.8f, 1.0f, 1.0f);
 
 };
@@ -16,14 +16,14 @@ struct Config
 class ParticleSystem
 {
 private:
-	ParticleRenderer* renderer;
+	Renderer* renderer;
 public:
 	Config config;
 
 	ParticleSystem(Config config)
 	{
 		this->config = config;
-		renderer = new ParticleRenderer(this->config.particleColor);
+		renderer = new Renderer(this->config.numberParticles);
 		renderer->init();
 	}
 

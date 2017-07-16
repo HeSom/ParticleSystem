@@ -1,4 +1,4 @@
-#include "particleRenderer.h"
+#include "renderer.h"
 #include "stdio.h"
 #include "glslShader.h"
 #include "glm\gtc\type_ptr.hpp"
@@ -9,9 +9,9 @@
 std::vector<float> positions;
 GLuint colorVBO;
 
-ParticleRenderer::ParticleRenderer(glm::vec4 color)
+Renderer::Renderer(size_t numberParticles)
 {
-	this->color = color;
+	this->numberParticles = numberParticles;
 }
 
 double fRand(double fMin, double fMax)
@@ -20,25 +20,21 @@ double fRand(double fMin, double fMax)
 	return fMin + f * (fMax - fMin);
 }
 
-int ParticleRenderer::init()
+int Renderer::init()
 {
 	srand(42);
-	/*for (float x = 1; x < 3; x += 0.5){
-		for (float y = 1; y < 3; y += 0.5) {
-			for (float z = 1; z < 3; z += 0.5) {
-				positions.push_back(x + fRand(0.0f, 0.9f));
-				positions.push_back(y + fRand(0.0f, 0.9f));
-				positions.push_back(z + fRand(0.0f, 0.9f));
-			}
-		}
-	}*/
+	for (int i = 0; i < numberParticles; ++i) {
+		positions.push_back(fRand(1.0f, 3.5f));
+		positions.push_back(fRand(1.0f, 3.5f));
+		positions.push_back(fRand(1.0f, 3.5f));
+	}
 
-	positions.push_back(1.0f);
-	positions.push_back(2.0f);
-	positions.push_back(1.0f);
-	positions.push_back(1.0f);
-	positions.push_back(1.0f);
-	positions.push_back(1.0f);
+	//positions.push_back(1.0f);
+	//positions.push_back(2.0f);
+	//positions.push_back(1.0f);
+	//positions.push_back(1.0f);
+	//positions.push_back(1.0f);
+	//positions.push_back(1.0f);
 
 	numberParticles = positions.size() / 3;
 
@@ -94,7 +90,7 @@ int ParticleRenderer::init()
 	return 0;
 }
 
-void ParticleRenderer::cleanUp()
+void Renderer::cleanUp()
 {
 	glDeleteProgram(this->shaderProgram);
 	glDeleteBuffers(1, &(this->vbo));
@@ -102,7 +98,7 @@ void ParticleRenderer::cleanUp()
 	glDeleteVertexArrays(1, &(this->vao));
 }
 
-void ParticleRenderer::render(glm::vec3 camera)
+void Renderer::render(glm::vec3 camera)
 {
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

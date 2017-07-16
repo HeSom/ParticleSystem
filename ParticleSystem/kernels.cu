@@ -12,11 +12,11 @@
 #define THREADS_PER_BLOCK_DIM 256
 #define UNIFORM_GRID_MIN 0.0f
 #define UNIFORM_GRID_MAX 4.0f
-#define PARTICLE_SIZE 0.2f
-#define ELASTICITY 0.005f
+#define PARTICLE_SIZE 0.05f
+#define ELASTICITY 0.002f
 #define INERTIA 0.002f
-#define GROUND_ELASTICITY 0.5f
-#define DAMPING 0.05f
+#define GROUND_ELASTICITY 1.0f
+#define DAMPING 0.3f
 
 bool first = true;
 cudaGraphicsResource* vbo_resource;
@@ -143,7 +143,7 @@ __global__ void collideWithNeighbors_kernel(float3* position, float3* velocity, 
 			int cellX = cell.x + xOffset;
 			if (cellX < 0 || cellX >= cellsPerDim) continue;
 			for (int yOffset = -1; yOffset < 2; yOffset++) {
-				int cellY = cell.x + yOffset;
+				int cellY = cell.y + yOffset;
 				if (cellY < 0 || cellY >= cellsPerDim) continue;
 				for (int zOffset = -1; zOffset < 2; zOffset++) {
 					int cellZ = cell.z + zOffset;
@@ -245,7 +245,8 @@ void simulate(GLuint vbo, size_t numParticles, float dt)
 	dim3 threads_in_block(min(numParticles,THREADS_PER_BLOCK_DIM), 1, 1);
 
 	dim3 blocks_in_grid(iDivUp(gridSize, threads_in_block.x), 1, 1);
-	clearGrid_kernel<<<blocks_in_grid, threads_in_block>>>(uniformGrid, gridSize);
+	//clearGrid_kernel<<<blocks_in_grid, threads_in_block>>>(uniformGrid, gridSize);
+	cudaMemset(uniformGrid, -1, gridSize*sizeof(int));
 
 	blocks_in_grid = dim3(iDivUp(numParticles, threads_in_block.x), 1, 1);
 

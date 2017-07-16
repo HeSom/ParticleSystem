@@ -8,7 +8,7 @@ uniform mat4 projection;
 uniform vec3 cameraPos;
 uniform int screenWidth;
 
-float pointRadius = 0.2;
+float pointRadius = 0.1;
 
 void main()
 {
