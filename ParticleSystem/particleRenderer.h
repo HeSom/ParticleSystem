@@ -12,7 +12,6 @@ private:
 	GLuint vao;
 	GLuint shaderProgram;
 
-	GLuint vertexColorLocation;
 	GLuint viewMatrixLocation;
 	GLuint projectionMatrixLocation;
 	GLuint cameraPosLocation;

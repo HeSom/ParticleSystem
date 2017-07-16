@@ -3,11 +3,10 @@
 See https://mmmovania.blogspot.de/2011/01/point-sprites-as-spheres-in-opengl33.html
 to get spheres from GL_POINTS
 */
-
+in vec4 outColor;
 out vec4 FragColor;
 
-uniform vec4 color;
-
+//uniform vec4 color;
 
 void main()
 {
@@ -20,5 +19,5 @@ void main()
 	float diffuse = max(0.0f, dot(vec3(0.0f, 0.0f, 1.0f), normal)); //hard coded lightning direction :(
 
 
-	FragColor = color * diffuse;
+	FragColor = outColor * diffuse;
 }

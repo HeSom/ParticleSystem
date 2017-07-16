@@ -7,6 +7,7 @@
 #define VERIFY(x) if(!x) {printf("Problem with compiling Shader in %s, line %d", __FILE__, __LINE__);return 1;}
 
 std::vector<float> positions;
+GLuint colorVBO;
 
 ParticleRenderer::ParticleRenderer(glm::vec4 color)
 {
@@ -22,9 +23,9 @@ double fRand(double fMin, double fMax)
 int ParticleRenderer::init()
 {
 	srand(42);
-	for (float x = 1; x < 3; x += 0.2){
-		for (float y = 1; y < 3; y += 0.2) {
-			for (float z = 1; z < 3; z += 0.2) {
+	for (float x = 1; x < 3; x += 0.5){
+		for (float y = 1; y < 3; y += 0.5) {
+			for (float z = 1; z < 3; z += 0.5) {
 				positions.push_back(x + fRand(0.0f, 0.9f));
 				positions.push_back(y + fRand(0.0f, 0.9f));
 				positions.push_back(z + fRand(0.0f, 0.9f));
@@ -33,6 +34,15 @@ int ParticleRenderer::init()
 	}
 
 	numberParticles = positions.size() / 3;
+
+	std::vector<float> colors;
+	for (int i = 0; i < numberParticles; ++i) {
+		colors.push_back(fRand(0.0f, 1.0f));
+		colors.push_back(fRand(0.0f, 1.0f));
+		colors.push_back(fRand(0.0f, 1.0f));
+		colors.push_back(1.0f);
+	}
+
 	//Shaders
 	GLuint vertexShader = compileShader("vertexshader.glsl", GL_VERTEX_SHADER);
 	GLuint fragmentShader = compileShader("fragmentshader.glsl", GL_FRAGMENT_SHADER);
@@ -55,11 +65,19 @@ int ParticleRenderer::init()
 	
 	glEnableVertexAttribArray(0);
 	//-----------End of positions-----------
+
+	//---------------colors-----------------
+	glGenBuffers(1, &colorVBO);
+	glBindBuffer(GL_ARRAY_BUFFER, colorVBO);
+	glBufferData(GL_ARRAY_BUFFER, colors.size() * sizeof(float), colors.data(), GL_STATIC_DRAW);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), nullptr);
+	glEnableVertexAttribArray(1);
+
+	//------------End of colors-------------
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 
 	//Uniform locations
-	vertexColorLocation = glGetUniformLocation(shaderProgram, "color");
 	viewMatrixLocation = glGetUniformLocation(shaderProgram, "view");
 	projectionMatrixLocation = glGetUniformLocation(shaderProgram, "projection");
 	cameraPosLocation = glGetUniformLocation(shaderProgram, "cameraPos");
@@ -73,6 +91,7 @@ void ParticleRenderer::cleanUp()
 {
 	glDeleteProgram(this->shaderProgram);
 	glDeleteBuffers(1, &(this->vbo));
+	glDeleteBuffers(1, &colorVBO);
 	glDeleteVertexArrays(1, &(this->vao));
 }
 
@@ -82,8 +101,6 @@ void ParticleRenderer::render(glm::vec3 camera)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
 	glUseProgram(this->shaderProgram);
-	glUniform4f(this->vertexColorLocation,
-				this->color.r, this->color.g, this->color.b, this->color.a);
 	glm::vec3 cameraDirection = glm::normalize(camera);
 	glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
 	glm::vec3 cameraRight = glm::normalize(glm::cross(up, cameraDirection));
