@@ -13,7 +13,7 @@
 #define UNIFORM_GRID_MIN 0.0f
 #define UNIFORM_GRID_MAX 4.0f
 #define PARTICLE_SIZE 0.05f
-#define PARTICLES_PER_CELL 32
+#define PARTICLES_PER_CELL 8
 #define ELASTICITY 0.0f
 #define INERTIA 0.0f
 #define GROUND_ELASTICITY 0.5f
@@ -22,6 +22,7 @@
 bool first = true;
 cudaGraphicsResource* vbo_resource;
 int* uniformGrid;
+int* particlesInCell;
 int gridSize;
 float gridWidth;
 int cellsPerDim;
@@ -50,23 +51,30 @@ __global__ void setInitialVelocity_kernel(float3* velocity, int numberParticles)
 	}
 }
 
-__global__ void clearGrid_kernel(int* grid, int gridSize)
+__global__ void clearGrid_kernel(int* grid, int* particlesInCell, int gridSize)
 {
 	int x = blockIdx.x*blockDim.x + threadIdx.x;
 	if (x < gridSize) {
-		grid[x] = -1;
+		particlesInCell[x] = 0;
+		for (int i = 0; i < PARTICLES_PER_CELL; ++i)
+			grid[x*PARTICLES_PER_CELL + i] = -1;
 	}
 }
 
-__global__ void updateGrid_kernel(int* grid, const float3* position, size_t numParticles, size_t cellsPerDim)
+__global__ void updateGrid_kernel(int* grid, const float3* position, size_t numParticles, size_t cellsPerDim, int* particlesInCell)
 {
 	int i = blockIdx.x*blockDim.x + threadIdx.x;	//index of particle
 	if (i < numParticles) {
 		int3 cell = calculateCell(position[i]);
-		int index = cell.z*cellsPerDim*cellsPerDim +
+		int index = cell.z*cellsPerDim*cellsPerDim*PARTICLES_PER_CELL +
+			cell.y*cellsPerDim*PARTICLES_PER_CELL +
+			cell.x*PARTICLES_PER_CELL;
+		int cellIndex = cell.z*cellsPerDim*cellsPerDim +
 			cell.y*cellsPerDim +
 			cell.x;
-		grid[index] = i;
+		int offset = atomicAdd(&(particlesInCell[cellIndex]), 1);
+		if(offset < PARTICLES_PER_CELL)
+			grid[index + offset] = i;
 		//printf("Thread:%i, Offset:%i\n", i, offset);
 	}
 }
@@ -132,7 +140,7 @@ __device__ float3 collide(float3 position1, float3 position2, float3 velocity1, 
 	return newVel;
 }
 
-__global__ void collideWithNeighbors_kernel(float3* position, float3* velocity, int* grid, int cellsPerDim, int numParticles)
+__global__ void collideWithNeighbors_kernel(float3* position, float3* velocity, int* grid, int cellsPerDim, int numParticles, int* particlesInCell)
 {
 	int thread = blockIdx.x * blockDim.x + threadIdx.x;
 	if (thread < numParticles) {
@@ -149,17 +157,23 @@ __global__ void collideWithNeighbors_kernel(float3* position, float3* velocity, 
 				for (int zOffset = -1; zOffset < 2; zOffset++) {
 					int cellZ = cell.z + zOffset;
 					if (cellZ < 0 || cellZ >= cellsPerDim) continue;
+					int cellIndex = cellZ*cellsPerDim*cellsPerDim + cellY*cellsPerDim + cellX;
+					int index = cellZ*cellsPerDim*cellsPerDim*PARTICLES_PER_CELL +
+						cellY*cellsPerDim*PARTICLES_PER_CELL
+						+ cellX*PARTICLES_PER_CELL;
+					for (int particle = 0; particle < particlesInCell[cellIndex]; ++particle) {
+						int neighboringParticle = grid[index + particle];
+						if (neighboringParticle == -1 || neighboringParticle == thread) continue;
+						float3 neighborPos = position[neighboringParticle];
+						float3 neighborVel = velocity[neighboringParticle];
+						float3 r = difference(neighborPos, pos);
+						float distSquared = dot(r, r);
+						if (distSquared < (2 * PARTICLE_SIZE)*(2 * PARTICLE_SIZE)) {	//collision detected
 
-					int neighboringParticle = grid[cellZ*cellsPerDim*cellsPerDim + cellY*cellsPerDim + cellX];
-					if (neighboringParticle == -1 || neighboringParticle == thread) continue;
-					float3 neighborPos = position[neighboringParticle];
-					float3 neighborVel = velocity[neighboringParticle];
-					float3 r = difference(neighborPos, pos);
-					float distSquared = dot(r, r);
-					if (distSquared < (2 * PARTICLE_SIZE)*(2 * PARTICLE_SIZE)) {	//collision detected
-						
-						collisionVel = collide(pos, neighborPos, vel, neighborVel);
+							collisionVel = collide(pos, neighborPos, vel, neighborVel);
+						}
 					}
+					
 				}
 			}
 		}
@@ -228,7 +242,8 @@ void simulate(GLuint vbo, size_t numParticles, float dt)
 		gridWidth = UNIFORM_GRID_MAX - UNIFORM_GRID_MIN;
 		cellsPerDim = gridWidth / (2*PARTICLE_SIZE);
 		gridSize = cellsPerDim*cellsPerDim*cellsPerDim;
-		cudaMalloc(&uniformGrid, gridSize * sizeof(int));
+		cudaMalloc(&uniformGrid, gridSize * sizeof(int) * PARTICLES_PER_CELL);
+		cudaMalloc(&particlesInCell, gridSize * sizeof(int));
 		
 		cudaMalloc(&velocity, numParticles * sizeof(float3));
 		dim3 threads_in_block(THREADS_PER_BLOCK_DIM, 1, 1);
@@ -246,14 +261,14 @@ void simulate(GLuint vbo, size_t numParticles, float dt)
 	dim3 threads_in_block(min(numParticles,THREADS_PER_BLOCK_DIM), 1, 1);
 
 	dim3 blocks_in_grid(iDivUp(gridSize, threads_in_block.x), 1, 1);
-	//clearGrid_kernel<<<blocks_in_grid, threads_in_block>>>(uniformGrid, gridSize);
-	cudaMemset(uniformGrid, -1, gridSize*sizeof(int));
+	clearGrid_kernel<<<blocks_in_grid, threads_in_block>>>(uniformGrid, particlesInCell, gridSize);
+	//cudaMemset(uniformGrid, -1, gridSize*sizeof(int)*PARTICLES_PER_CELL);
 
 	blocks_in_grid = dim3(iDivUp(numParticles, threads_in_block.x), 1, 1);
 
 	step << <blocks_in_grid, threads_in_block >> > (positions, velocity, numParticles, dt);
-	updateGrid_kernel << <blocks_in_grid, threads_in_block >> > (uniformGrid, positions, numParticles, cellsPerDim);
-	collideWithNeighbors_kernel << <blocks_in_grid, threads_in_block >> > (positions, velocity, uniformGrid, cellsPerDim, numParticles);
+	updateGrid_kernel << <blocks_in_grid, threads_in_block >> > (uniformGrid, positions, numParticles, cellsPerDim, particlesInCell);
+	collideWithNeighbors_kernel << <blocks_in_grid, threads_in_block >> > (positions, velocity, uniformGrid, cellsPerDim, numParticles, particlesInCell);
 	cudaGraphicsUnmapResources(1, &vbo_resource, 0);
 }
 
