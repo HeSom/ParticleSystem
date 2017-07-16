@@ -13,9 +13,10 @@
 #define UNIFORM_GRID_MIN 0.0f
 #define UNIFORM_GRID_MAX 4.0f
 #define PARTICLE_SIZE 0.2f
-#define ELASTICITY 0.05f
-#define INERTIA 0.2f
+#define ELASTICITY 0.005f
+#define INERTIA 0.002f
 #define GROUND_ELASTICITY 0.5f
+#define DAMPING 0.05f
 
 bool first = true;
 cudaGraphicsResource* vbo_resource;
@@ -123,9 +124,9 @@ __device__ float3 collide(float3 position1, float3 position2, float3 velocity1, 
 	float coeff = dot(r_normed, velTransformed);
 	float3 velLinear = make_float3(coeff*r_normed.x, coeff*r_normed.y, coeff*r_normed.z);
 	float3 velPerpendicular = make_float3(velTransformed.x - velLinear.x, velTransformed.y - velLinear.y, velTransformed.z - velLinear.z);
-	float3 newVel = make_float3(ELASTICITY*velLinear.x + INERTIA*velPerpendicular.x - (2 * PARTICLE_SIZE)*r_normed.x,
-								ELASTICITY*velLinear.y + INERTIA*velPerpendicular.x - (2 * PARTICLE_SIZE)*r_normed.y,
-								ELASTICITY*velLinear.z + INERTIA*velPerpendicular.z - (2 * PARTICLE_SIZE)*r_normed.z
+	float3 newVel = make_float3(ELASTICITY*velLinear.x + INERTIA*velPerpendicular.x - DAMPING*(2*PARTICLE_SIZE)*r_normed.x,
+								ELASTICITY*velLinear.y + INERTIA*velPerpendicular.y - DAMPING*(2*PARTICLE_SIZE)*r_normed.y,
+								ELASTICITY*velLinear.z + INERTIA*velPerpendicular.z - DAMPING*(2*PARTICLE_SIZE)*r_normed.z
 								);
 	return newVel;
 }
@@ -138,18 +139,18 @@ __global__ void collideWithNeighbors_kernel(float3* position, float3* velocity, 
 		float3 vel = velocity[thread];
 		float3 collisionVel = make_float3(0.0f, 0.0f, 0.0f);
 		int3 cell = calculateCell(pos);
-		for (int xOffset = -1; xOffset < 2; xOffset += 2) {
+		for (int xOffset = -1; xOffset < 2; xOffset++) {
 			int cellX = cell.x + xOffset;
 			if (cellX < 0 || cellX >= cellsPerDim) continue;
-			for (int yOffset = -1; yOffset < 2; yOffset += 2) {
+			for (int yOffset = -1; yOffset < 2; yOffset++) {
 				int cellY = cell.x + yOffset;
 				if (cellY < 0 || cellY >= cellsPerDim) continue;
-				for (int zOffset = -1; zOffset < 2; zOffset += 2) {
+				for (int zOffset = -1; zOffset < 2; zOffset++) {
 					int cellZ = cell.z + zOffset;
 					if (cellZ < 0 || cellZ >= cellsPerDim) continue;
 
 					int neighboringParticle = grid[cellZ*cellsPerDim*cellsPerDim + cellY*cellsPerDim + cellX];
-					if (neighboringParticle == -1) continue;
+					if (neighboringParticle == -1 || neighboringParticle == thread) continue;
 					float3 neighborPos = position[neighboringParticle];
 					float3 neighborVel = velocity[neighboringParticle];
 					float3 r = difference(neighborPos, pos);
@@ -157,7 +158,6 @@ __global__ void collideWithNeighbors_kernel(float3* position, float3* velocity, 
 					if (distSquared < (2 * PARTICLE_SIZE)*(2 * PARTICLE_SIZE)) {	//collision detected
 						
 						collisionVel = collide(pos, neighborPos, vel, neighborVel);
-
 					}
 				}
 			}
@@ -225,8 +225,8 @@ void simulate(GLuint vbo, size_t numParticles, float dt)
 	if (first) {
 		cudaGraphicsGLRegisterBuffer(&vbo_resource, vbo, cudaGraphicsRegisterFlagsNone);
 		gridWidth = UNIFORM_GRID_MAX - UNIFORM_GRID_MIN;
-		gridSize = (gridWidth/ PARTICLE_SIZE)*(gridWidth / PARTICLE_SIZE)*(gridWidth / PARTICLE_SIZE);
-		cellsPerDim = gridWidth / PARTICLE_SIZE;
+		cellsPerDim = gridWidth / (PARTICLE_SIZE);
+		gridSize = cellsPerDim*cellsPerDim*cellsPerDim;
 		cudaMalloc(&uniformGrid, gridSize * sizeof(int));
 		
 		cudaMalloc(&velocity, numParticles * sizeof(float3));

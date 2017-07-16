@@ -23,7 +23,7 @@ double fRand(double fMin, double fMax)
 int ParticleRenderer::init()
 {
 	srand(42);
-	for (float x = 1; x < 3; x += 0.5){
+	/*for (float x = 1; x < 3; x += 0.5){
 		for (float y = 1; y < 3; y += 0.5) {
 			for (float z = 1; z < 3; z += 0.5) {
 				positions.push_back(x + fRand(0.0f, 0.9f));
@@ -31,7 +31,14 @@ int ParticleRenderer::init()
 				positions.push_back(z + fRand(0.0f, 0.9f));
 			}
 		}
-	}
+	}*/
+
+	positions.push_back(1.0f);
+	positions.push_back(2.0f);
+	positions.push_back(1.0f);
+	positions.push_back(1.0f);
+	positions.push_back(1.0f);
+	positions.push_back(1.0f);
 
 	numberParticles = positions.size() / 3;
 
