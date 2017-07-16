@@ -22,11 +22,11 @@ double fRand(double fMin, double fMax)
 
 int Renderer::init()
 {
-	srand(42);
+	srand(12232);
 	for (int i = 0; i < numberParticles; ++i) {
-		positions.push_back(fRand(1.0f, 3.5f));
-		positions.push_back(fRand(1.0f, 3.5f));
-		positions.push_back(fRand(1.0f, 3.5f));
+		positions.push_back(fRand(1.0f, 3.0f));
+		positions.push_back(fRand(1.0f, 3.0f));
+		positions.push_back(fRand(1.0f, 3.0f));
 	}
 
 	//positions.push_back(1.0f);

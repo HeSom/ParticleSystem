@@ -9,14 +9,15 @@
 #include "math_functions.h"
 #include "stdio.h"
 
-#define THREADS_PER_BLOCK_DIM 256
+#define THREADS_PER_BLOCK_DIM 512
 #define UNIFORM_GRID_MIN 0.0f
 #define UNIFORM_GRID_MAX 4.0f
 #define PARTICLE_SIZE 0.05f
-#define ELASTICITY 0.002f
-#define INERTIA 0.002f
-#define GROUND_ELASTICITY 1.0f
-#define DAMPING 0.3f
+#define PARTICLES_PER_CELL 32
+#define ELASTICITY 0.0f
+#define INERTIA 0.0f
+#define GROUND_ELASTICITY 0.5f
+#define DAMPING 0.5f
 
 bool first = true;
 cudaGraphicsResource* vbo_resource;
@@ -32,9 +33,9 @@ __device__ int3 calculateCell(const float3& position)
 	float y = position.y;
 	float z = position.z;
 
-	int cellX = floor(x / PARTICLE_SIZE);
-	int cellY = floor(y / PARTICLE_SIZE);
-	int cellZ = floor(z / PARTICLE_SIZE);
+	int cellX = floor(x / (2*PARTICLE_SIZE));
+	int cellY = floor(y / (2*PARTICLE_SIZE));
+	int cellZ = floor(z / (2*PARTICLE_SIZE));
 
 	return make_int3(cellX, cellY, cellZ);
 }
@@ -124,9 +125,9 @@ __device__ float3 collide(float3 position1, float3 position2, float3 velocity1, 
 	float coeff = dot(r_normed, velTransformed);
 	float3 velLinear = make_float3(coeff*r_normed.x, coeff*r_normed.y, coeff*r_normed.z);
 	float3 velPerpendicular = make_float3(velTransformed.x - velLinear.x, velTransformed.y - velLinear.y, velTransformed.z - velLinear.z);
-	float3 newVel = make_float3(ELASTICITY*velLinear.x + INERTIA*velPerpendicular.x - DAMPING*(2*PARTICLE_SIZE)*r_normed.x,
-								ELASTICITY*velLinear.y + INERTIA*velPerpendicular.y - DAMPING*(2*PARTICLE_SIZE)*r_normed.y,
-								ELASTICITY*velLinear.z + INERTIA*velPerpendicular.z - DAMPING*(2*PARTICLE_SIZE)*r_normed.z
+	float3 newVel = make_float3(ELASTICITY*velLinear.x + INERTIA*velPerpendicular.x - DAMPING*(2*PARTICLE_SIZE - len)*r_normed.x,
+								ELASTICITY*velLinear.y + INERTIA*velPerpendicular.y - DAMPING*(2*PARTICLE_SIZE - len)*r_normed.y,
+								ELASTICITY*velLinear.z + INERTIA*velPerpendicular.z - DAMPING*(2*PARTICLE_SIZE - len)*r_normed.z
 								);
 	return newVel;
 }
@@ -225,7 +226,7 @@ void simulate(GLuint vbo, size_t numParticles, float dt)
 	if (first) {
 		cudaGraphicsGLRegisterBuffer(&vbo_resource, vbo, cudaGraphicsRegisterFlagsNone);
 		gridWidth = UNIFORM_GRID_MAX - UNIFORM_GRID_MIN;
-		cellsPerDim = gridWidth / (PARTICLE_SIZE);
+		cellsPerDim = gridWidth / (2*PARTICLE_SIZE);
 		gridSize = cellsPerDim*cellsPerDim*cellsPerDim;
 		cudaMalloc(&uniformGrid, gridSize * sizeof(int));
 		
