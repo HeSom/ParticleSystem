@@ -15,7 +15,7 @@ private:
 	GLuint viewMatrixLocation;
 	GLuint projectionMatrixLocation;
 	GLuint cameraPosLocation;
-	GLuint screenWidhtLocation;
+	GLuint screenWidthLocation;
 
 	size_t numberParticles;
 

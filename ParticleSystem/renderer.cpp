@@ -75,8 +75,8 @@ int Renderer::init()
 	glBufferData(GL_ARRAY_BUFFER, colors.size() * sizeof(float), colors.data(), GL_STATIC_DRAW);
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), nullptr);
 	glEnableVertexAttribArray(1);
-
 	//------------End of colors-------------
+
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 
@@ -84,7 +84,7 @@ int Renderer::init()
 	viewMatrixLocation = glGetUniformLocation(shaderProgram, "view");
 	projectionMatrixLocation = glGetUniformLocation(shaderProgram, "projection");
 	cameraPosLocation = glGetUniformLocation(shaderProgram, "cameraPos");
-	screenWidhtLocation = glGetUniformLocation(shaderProgram, "screenWidth");
+	screenWidthLocation = glGetUniformLocation(shaderProgram, "screenWidth");
 
 
 	return 0;
@@ -117,7 +117,7 @@ void Renderer::render(glm::vec3 camera)
 	GLint vp[4];
 	glGetIntegerv(GL_VIEWPORT, vp);
 	GLint width = vp[3];
-	glUniform1i(screenWidhtLocation, width);
+	glUniform1i(screenWidthLocation, width);
 	glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
 	glDrawArrays(GL_POINTS, 0, positions.size()/3);
 	glBindVertexArray(0);

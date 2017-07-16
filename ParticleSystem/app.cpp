@@ -5,6 +5,8 @@
 
 #include "particleSystem.h"
 
+
+
 #define SCROLL_SPEED 6.0f
 #define ROTATION_SPEED 3.0f
 
@@ -19,7 +21,7 @@ App::App(GLFWwindow* window)
 	this->window = window;
 }
 
-App* App::create()
+App* App::create(int argc, char** argv)
 {
 	GLFWwindow* window;
 	glfwInit();
@@ -45,6 +47,13 @@ App* App::create()
 
 	glViewport(0, 0, WIDTH, HEIGHT);
 	App* app = new App(window);
+	if (argc > 1) {
+		std::istringstream ss(argv[1]);
+		int x;
+		if (!(ss >> x))
+			std::cerr << "Invalid number " << argv[1] << '\n';
+		app->numParticles = x;
+	}
 	return app;
 }
 
@@ -56,6 +65,7 @@ void App::free(App* app)
 int App::exec()
 {
 	Config config;
+	config.numberParticles = numParticles;
 	ParticleSystem* system = new ParticleSystem(config);
 	int frames = 0;
 	float lastFPSdump = 0;

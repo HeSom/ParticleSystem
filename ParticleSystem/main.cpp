@@ -5,9 +5,9 @@
 
 #include <iostream>
 
-int main()
+int main(int argc, char** argv)
 {	
-	App* app = App::create();
+	App* app = App::create(argc, argv);
 	if (app == nullptr) {
 		std::cout << "Could not create App!";
 		return -1;

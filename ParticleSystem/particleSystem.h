@@ -8,7 +8,7 @@
 
 struct Config
 {
-	int numberParticles = 2000;
+	int numberParticles;
 	glm::vec4 particleColor = glm::vec4(0.0f, 0.8f, 1.0f, 1.0f);
 
 };

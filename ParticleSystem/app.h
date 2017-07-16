@@ -9,9 +9,10 @@ class App
 {
 private:
 	App(GLFWwindow* window);
+	size_t numParticles = 1000;
 public:
 	GLFWwindow* window;
-	static App* create();
+	static App* create(int argc, char** argv);
 	static void free(App* app);
 	void processInput();
 
