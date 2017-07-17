@@ -6,7 +6,7 @@ void ParticleSystem::update(float timeSinceLastFrame)
 	simulate(renderer->getVBO(), renderer->getNumberParticles(), timeSinceLastFrame);
 }
 
-void ParticleSystem::render(glm::vec3 camera)
+void ParticleSystem::render(glm::vec3 camera, float moonRotation)
 {
-	renderer->render(camera);
+	renderer->render(camera, moonRotation);
 }

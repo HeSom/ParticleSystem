@@ -9,13 +9,13 @@
 #include "math_functions.h"
 #include "stdio.h"
 
-#define THREADS_PER_BLOCK_DIM 512
+#define THREADS_PER_BLOCK_DIM 256
 #define UNIFORM_GRID_MIN 0.0f
-#define UNIFORM_GRID_MAX 4.0f
+#define UNIFORM_GRID_MAX 2.0f
 #define PARTICLE_SIZE 0.05f
 #define PARTICLES_PER_CELL 8
 #define ELASTICITY 0.0f
-#define INERTIA 0.0f
+#define INERTIA 0.02f
 #define GROUND_ELASTICITY 0.5f
 #define DAMPING 0.5f
 
@@ -27,6 +27,7 @@ int gridSize;
 float gridWidth;
 int cellsPerDim;
 float3* velocity;
+float3* nextVelocity;
 
 __device__ int3 calculateCell(const float3& position)
 {
@@ -133,14 +134,14 @@ __device__ float3 collide(float3 position1, float3 position2, float3 velocity1, 
 	float coeff = dot(r_normed, velTransformed);
 	float3 velLinear = make_float3(coeff*r_normed.x, coeff*r_normed.y, coeff*r_normed.z);
 	float3 velPerpendicular = make_float3(velTransformed.x - velLinear.x, velTransformed.y - velLinear.y, velTransformed.z - velLinear.z);
-	float3 newVel = make_float3(ELASTICITY*velLinear.x + INERTIA*velPerpendicular.x - DAMPING*(2*PARTICLE_SIZE - len)*r_normed.x,
-								ELASTICITY*velLinear.y + INERTIA*velPerpendicular.y - DAMPING*(2*PARTICLE_SIZE - len)*r_normed.y,
-								ELASTICITY*velLinear.z + INERTIA*velPerpendicular.z - DAMPING*(2*PARTICLE_SIZE - len)*r_normed.z
+	float3 newVel = make_float3(ELASTICITY*velTransformed.x + INERTIA*velPerpendicular.x - DAMPING*(2*PARTICLE_SIZE - len)*r_normed.x,
+								ELASTICITY*velTransformed.y + INERTIA*velPerpendicular.y - DAMPING*(2*PARTICLE_SIZE - len)*r_normed.y,
+								ELASTICITY*velTransformed.z + INERTIA*velPerpendicular.z - DAMPING*(2*PARTICLE_SIZE - len)*r_normed.z
 								);
 	return newVel;
 }
 
-__global__ void collideWithNeighbors_kernel(float3* position, float3* velocity, int* grid, int cellsPerDim, int numParticles, int* particlesInCell)
+__global__ void collideWithNeighbors_kernel(float3* position, float3* velocity, float3* nextVelocity, int* grid, int cellsPerDim, int numParticles, int* particlesInCell)
 {
 	int thread = blockIdx.x * blockDim.x + threadIdx.x;
 	if (thread < numParticles) {
@@ -179,16 +180,16 @@ __global__ void collideWithNeighbors_kernel(float3* position, float3* velocity, 
 		}
 		__syncthreads();
 
-		velocity[thread] = add(vel, collisionVel);
+		nextVelocity[thread] = add(vel, collisionVel);
 	}
 }
 
-__global__ void step(float3* position, float3* velocity, int numParticles, float dt)
+__global__ void step(float3* position, float3* velocity, float3* nextVelocity, int numParticles, float dt)
 {
 	int thread = blockIdx.x*blockDim.x + threadIdx.x;
 	if (thread < numParticles) {
 		float3 pos = position[thread];
-		float3 vel = velocity[thread];
+		float3 vel = nextVelocity[thread];
 		pos = add(pos, mult(dt, vel));
 
 		//apply gravity
@@ -246,6 +247,7 @@ void simulate(GLuint vbo, size_t numParticles, float dt)
 		cudaMalloc(&particlesInCell, gridSize * sizeof(int));
 		
 		cudaMalloc(&velocity, numParticles * sizeof(float3));
+		cudaMalloc(&nextVelocity, numParticles * sizeof(float3));
 		dim3 threads_in_block(THREADS_PER_BLOCK_DIM, 1, 1);
 		dim3 blocks_in_grid = dim3(iDivUp(numParticles, threads_in_block.x), 1, 1);
 		setInitialVelocity_kernel << <blocks_in_grid, threads_in_block >> > (velocity, numParticles);
@@ -266,9 +268,9 @@ void simulate(GLuint vbo, size_t numParticles, float dt)
 
 	blocks_in_grid = dim3(iDivUp(numParticles, threads_in_block.x), 1, 1);
 
-	step << <blocks_in_grid, threads_in_block >> > (positions, velocity, numParticles, dt);
+	step << <blocks_in_grid, threads_in_block >> > (positions, velocity, nextVelocity, numParticles, dt);
 	updateGrid_kernel << <blocks_in_grid, threads_in_block >> > (uniformGrid, positions, numParticles, cellsPerDim, particlesInCell);
-	collideWithNeighbors_kernel << <blocks_in_grid, threads_in_block >> > (positions, velocity, uniformGrid, cellsPerDim, numParticles, particlesInCell);
+	collideWithNeighbors_kernel << <blocks_in_grid, threads_in_block >> > (positions, velocity, nextVelocity, uniformGrid, cellsPerDim, numParticles, particlesInCell);
 	cudaGraphicsUnmapResources(1, &vbo_resource, 0);
 }
 

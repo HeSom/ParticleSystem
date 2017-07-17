@@ -9,7 +9,7 @@ class App
 {
 private:
 	App(GLFWwindow* window);
-	size_t numParticles = 1000;
+	size_t numParticles = 200;
 public:
 	GLFWwindow* window;
 	static App* create(int argc, char** argv);

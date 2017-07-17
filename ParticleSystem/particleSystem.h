@@ -33,5 +33,5 @@ public:
 		delete renderer;
 	}
 	void update(float timeSinceLastFrame);
-	void render(glm::vec3 camera);
+	void render(glm::vec3 camera, float moonRotation);
 };

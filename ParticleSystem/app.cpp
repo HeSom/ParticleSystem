@@ -9,9 +9,11 @@
 
 #define SCROLL_SPEED 6.0f
 #define ROTATION_SPEED 3.0f
+#define MOON_SPEED 3.0f
 
 glm::vec3 camera = glm::vec3(0.0f, 0.0f, 3.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+float moonRotation = 0;
 
 float timeSinceLastFrame = 0.0f;
 float lastFrame = 0.0f;
@@ -87,7 +89,7 @@ int App::exec()
 		}
 		processInput();
 		system->update(timeSinceLastFrame);
-		system->render(camera);
+		system->render(camera, moonRotation);
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
@@ -117,6 +119,10 @@ void App::processInput()
 		camera = glm::vec4(camera, 1.0f) * glm::rotate(glm::mat4(1.0f), cameraSpeed, cameraUp);
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
 		camera = glm::vec4(camera, 1.0f) * glm::rotate(glm::mat4(1.0f), cameraSpeed, -cameraUp);
+	if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+		moonRotation += timeSinceLastFrame * MOON_SPEED;
+	if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+		moonRotation -= timeSinceLastFrame * MOON_SPEED;
 	
 }
 
