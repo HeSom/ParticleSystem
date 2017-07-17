@@ -184,7 +184,7 @@ __global__ void collideWithNeighbors_kernel(float3* position, float3* velocity, 
 	}
 }
 
-__global__ void step(float3* position, float3* velocity, float3* nextVelocity, int numParticles, float dt)
+__global__ void step(float3* position, float3* velocity, float3* nextVelocity, int numParticles, float3 moon, float dt)
 {
 	int thread = blockIdx.x*blockDim.x + threadIdx.x;
 	if (thread < numParticles) {
@@ -193,8 +193,11 @@ __global__ void step(float3* position, float3* velocity, float3* nextVelocity, i
 		pos = add(pos, mult(dt, vel));
 
 		//apply gravity
-		vel.y -= 0.005f;
+		vel.x += moon.x * 0.001f;
+		vel.y += moon.y * 0.001f;
+		vel.z += moon.z * 0.001f;
 		
+
 		//Collision with boundary
 		if (pos.x - PARTICLE_SIZE < UNIFORM_GRID_MIN) {
 			pos.x = UNIFORM_GRID_MIN + PARTICLE_SIZE;
@@ -236,7 +239,7 @@ int iDivUp(int x, int y)
 	return x / y + (x % y != 0);
 }
 
-void simulate(GLuint vbo, size_t numParticles, float dt)
+void simulate(GLuint vbo, size_t numParticles, glm::vec3 moonPosition, float dt)
 {
 	if (first) {
 		cudaGraphicsGLRegisterBuffer(&vbo_resource, vbo, cudaGraphicsRegisterFlagsNone);
@@ -265,10 +268,12 @@ void simulate(GLuint vbo, size_t numParticles, float dt)
 	dim3 blocks_in_grid(iDivUp(gridSize, threads_in_block.x), 1, 1);
 	clearGrid_kernel<<<blocks_in_grid, threads_in_block>>>(uniformGrid, particlesInCell, gridSize);
 	//cudaMemset(uniformGrid, -1, gridSize*sizeof(int)*PARTICLES_PER_CELL);
-
+	glm::vec3 center = glm::vec3((UNIFORM_GRID_MAX - UNIFORM_GRID_MIN) / 2, (UNIFORM_GRID_MAX - UNIFORM_GRID_MIN) / 2, (UNIFORM_GRID_MAX - UNIFORM_GRID_MIN) / 2);
+	glm::vec3 gravityDirection = glm::normalize(moonPosition - center);
+	float3 moon = make_float3(gravityDirection.x, gravityDirection.y, gravityDirection.z);
 	blocks_in_grid = dim3(iDivUp(numParticles, threads_in_block.x), 1, 1);
 
-	step << <blocks_in_grid, threads_in_block >> > (positions, velocity, nextVelocity, numParticles, dt);
+	step << <blocks_in_grid, threads_in_block >> > (positions, velocity, nextVelocity, numParticles, moon, dt);
 	updateGrid_kernel << <blocks_in_grid, threads_in_block >> > (uniformGrid, positions, numParticles, cellsPerDim, particlesInCell);
 	collideWithNeighbors_kernel << <blocks_in_grid, threads_in_block >> > (positions, velocity, nextVelocity, uniformGrid, cellsPerDim, numParticles, particlesInCell);
 	cudaGraphicsUnmapResources(1, &vbo_resource, 0);

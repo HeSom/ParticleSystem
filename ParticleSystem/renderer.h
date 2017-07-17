@@ -32,6 +32,8 @@ private:
 	GLuint moonVAO;
 	GLuint moonShader;
 
+	glm::vec3 moonPosition = glm::vec3(0.0f, 0.0f, 0.0f);
+
 	glm::mat4 proj = glm::perspective(glm::radians(45.0f), (float)WIDTH / (float)HEIGHT, 0.1f, 100.0f);
 public:
 	Renderer(size_t numberParticles);
@@ -40,4 +42,5 @@ public:
 	void render(glm::vec3 camera, float moonRotation);
 	GLuint getVBO() { return this->vbo; }
 	size_t getNumberParticles() { return numberParticles; }
+	glm::vec3 getMoonPosition() { return moonPosition; }
 };

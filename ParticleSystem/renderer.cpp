@@ -196,6 +196,9 @@ void Renderer::render(glm::vec3 camera, float moonRotation)
 	modelMatrix = glm::rotate(modelMatrix, moonRotation, glm::vec3(0.0f, 0.0f, 1.0f));
 	modelMatrix = glm::translate(modelMatrix, glm::vec3(-5.0f, -5.0f, -5.0f));
 	modelMatrix = glm::translate(modelMatrix, glm::vec3(5.0f, -10.0f, 5.0f));
+	moonPosition = glm::vec3(modelMatrix[3].x, modelMatrix[3].y, modelMatrix[3].z);			//Extract Position from tranformation matrix
+	//std::cout << "(" << moonPosition.x <<","<< moonPosition.y << "," <<moonPosition.z <<")" << std::endl;
+
 	glUniformMatrix4fv(moonModelMatrixLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix));
 	glUniformMatrix4fv(moonViewMatrixLocation, 1, GL_FALSE, glm::value_ptr(view));
 	glUniform3f(moonCameraLocation, camera.x, camera.y, camera.z);
