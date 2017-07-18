@@ -147,6 +147,8 @@ int Renderer::init()
 	moonProjectionMatrixLocation = glGetUniformLocation(moonShader, "projection");
 	moonCameraLocation = glGetUniformLocation(moonShader, "cameraPos");
 	moonColorLocation = glGetUniformLocation(moonShader, "color");
+	moonLightPositionLocation = glGetUniformLocation(moonShader, "lightPosition");
+	moonLightColorLocation = glGetUniformLocation(moonShader, "lightColor");
 
 	//Enable gl functions
 	glEnable(GL_DEPTH_TEST);
@@ -204,6 +206,8 @@ void Renderer::render(glm::vec3 camera, float moonRotation)
 	glUniform3f(moonCameraLocation, camera.x, camera.y, camera.z);
 	glUniformMatrix4fv(moonProjectionMatrixLocation, 1, GL_FALSE, glm::value_ptr(this->proj));
 	glUniform3f(moonColorLocation, 1.0f, 1.0f, 1.0f);
+	glUniform3fv(moonLightPositionLocation, 1, glm::value_ptr(lightPosition));
+	glUniform3fv(moonLightColorLocation, 1, glm::value_ptr(lightColor));
 	glBindVertexArray(this->moonVAO);
 	glDrawElements(GL_TRIANGLES, moonElements, GL_UNSIGNED_INT, (void*)0);
 	glBindVertexArray(0);
