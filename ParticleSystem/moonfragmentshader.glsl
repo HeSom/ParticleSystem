@@ -20,7 +20,7 @@ void main()
 	vec3 normal = normalize(vNormal);
 	vec3 l = normalize(lightPosition - worldPos.xyz);
 	vec3 viewDir = normalize(cameraPos - worldPos.xyz);
-	vec3 r = reflect(-l, normal); 
+	vec3 r = reflect(-l, normal);
 	vec3 diffuse = lightColor * kd * max(dot(l, normal), 0);
 	vec3 specular = lightColor * ks * pow(max(dot(r, viewDir), 0), n);
 
