@@ -8,7 +8,7 @@
 
 
 #define SCROLL_SPEED 6.0f
-#define ROTATION_SPEED 3.0f
+#define ROTATION_SPEED 1.0f
 #define MOON_SPEED 3.0f
 
 glm::vec3 camera = glm::vec3(0.0f, 0.0f, 3.0f);

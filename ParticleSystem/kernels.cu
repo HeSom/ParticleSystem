@@ -267,7 +267,6 @@ void simulate(GLuint vbo, size_t numParticles, glm::vec3 moonPosition, float dt)
 
 	dim3 blocks_in_grid(iDivUp(gridSize, threads_in_block.x), 1, 1);
 	clearGrid_kernel<<<blocks_in_grid, threads_in_block>>>(uniformGrid, particlesInCell, gridSize);
-	//cudaMemset(uniformGrid, -1, gridSize*sizeof(int)*PARTICLES_PER_CELL);
 	glm::vec3 center = glm::vec3((UNIFORM_GRID_MAX - UNIFORM_GRID_MIN) / 2, (UNIFORM_GRID_MAX - UNIFORM_GRID_MIN) / 2, (UNIFORM_GRID_MAX - UNIFORM_GRID_MIN) / 2);
 	glm::vec3 gravityDirection = glm::normalize(moonPosition - center);
 	float3 moon = make_float3(gravityDirection.x, gravityDirection.y, gravityDirection.z);
