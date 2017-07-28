@@ -12,9 +12,6 @@ float pointDiameter = 0.12;
 
 void main()
 {
-	float cameraDistance = distance(aPos.xyz, cameraPos);
-	float pointScale = (cameraDistance / 100);
-
 	vec4 viewPos = view * vec4(aPos, 1.0f);
 
 	vec4 projCorner = projection * vec4(0.5*pointDiameter, 0.5*pointDiameter, viewPos.z, viewPos.w);
