@@ -14,8 +14,10 @@ void main()
 {
 	vec4 viewPos = view * vec4(aPos, 1.0f);
 
+	//Scale point size depending on distance from camera
 	vec4 projCorner = projection * vec4(0.5*pointDiameter, 0.5*pointDiameter, viewPos.z, viewPos.w);
 	gl_Position = projection * viewPos;
 	gl_PointSize = screenWidth * projCorner.x / projCorner.w;
+
 	outColor = color;
 }
