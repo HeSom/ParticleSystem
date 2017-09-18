@@ -12,7 +12,9 @@ void main()
 {
 	vec3 normal;
 	normal.xy = gl_PointCoord * 2.0 - vec2(1.0);
+	//mag = squared distance from center of current pixel inside gl_point
 	float mag = dot(normal.xy, normal.xy);
+	//discard pixels further away than 1.0 to get a circle
 	if(mag > 1.0f) discard;
 	normal.z = sqrt(1.0f - mag);
 
